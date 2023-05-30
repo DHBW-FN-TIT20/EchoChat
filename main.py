@@ -250,7 +250,7 @@ def handle_input(input, id, conn):
         'UNSUBSCRIBE_TOPIC': handle_unsubscribe, 
         'PUBLISH_TOPIC': handle_publish, 
         'GET_TOPIC_STATUS': handle_topic_status, 
-        'LIST_TOPIC': handle_topic_list,
+        'LIST_TOPICS': handle_topic_list,
     }
     try:
         parsed = json.loads(input)
