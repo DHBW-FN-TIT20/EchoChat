@@ -56,6 +56,7 @@ def handle_status(conn):
     send_ws_request("GET_TOPIC_STATUS", {"name": name}, conn)
 
 def end_loop(conn):
+    print("exiting")
     raise KeyboardInterrupt
 
 def handle_input(input, conn):
@@ -85,7 +86,7 @@ def handle_input(input, conn):
         print("invalid function")
 
 # adapted from https://stackoverflow.com/a/49899135
-def subscribe(conn):
+async def listener(conn):
     try:
         while True:
             result = conn.recv()
@@ -94,17 +95,18 @@ def subscribe(conn):
         print("\nwebsocket closed")
     except ConnectionClosedError:
         print("\nwebsocket died")
+    except KeyboardInterrupt:
+        pass
 
-def start_thread(loop):
+def start_thread(loop, conn):
     asyncio.set_event_loop(loop)
-    loop.run_forever()
+    loop.run_until_complete(listener(conn))
 
 def start_socket(conn):
     worker_loop = asyncio.new_event_loop()
-    worker = threading.Thread(target=start_thread, args=(worker_loop,))
+    worker = threading.Thread(target=start_thread, args=(worker_loop, conn))
     worker.start()
-
-    worker_loop.call_soon_threadsafe(subscribe, conn)
+    return worker_loop
 
 def main():
     """
@@ -116,8 +118,7 @@ def main():
     uri = "ws://127.0.0.1:8000/ws"
     conn = connect(uri)
 
-    start_socket(conn)
-
+    listener_loop = start_socket(conn)
 
     try:
         while True:
@@ -125,8 +126,8 @@ def main():
             handle_input(command, conn)
 
     except KeyboardInterrupt:
+        listener_loop.stop()
         conn.close()
-        print("\npress ^C again")
 
 
 if __name__ == "__main__":

@@ -68,25 +68,27 @@ def handle_subscribe(parameters, id, conn):
     response = {
         "status": "failure",
         "function": "SUBSCRIBE_TOPIC",
-        "topic": parameters['name'],
+        "data": {
+            "topic": parameters['name'],
+        },
         "error": ""
     }
     try:
-        subscribers = topics[response['topic']]['subscribers']
+        subscribers = topics[response['data']['topic']]['subscribers']
         in_list = False
         for sub in subscribers:
             if sub['uuid'] == id:
                 in_list = True
                 break
         if not in_list:
-            topics[response['topic']]['subscribers'].append({"uuid": id, "conn": conn})
+            topics[response['data']['topic']]['subscribers'].append({"uuid": id, "conn": conn})
             response['status'] = "success"
         else:
             response['error'] = "you are already subscribed to that list"
     except KeyError:
         # key does not exist in topics, create topic
-        topics[response['topic']] = {"subscribers": [], "last_update": "never"}
-        topics[response['topic']]['subscribers'].append({"uuid": id, "conn": conn})
+        topics[response['data']['topic']] = {"subscribers": [], "last_update": "never"}
+        topics[response['data']['topic']]['subscribers'].append({"uuid": id, "conn": conn})
         response['status'] = "success"
 
     return response
@@ -98,20 +100,22 @@ def handle_unsubscribe(parameters, id, conn):
     response = {
         "status": "failure",
         "function": "UNSUBSCRIBE_TOPIC",
-        "topic": parameters['name'],
+        "data": {
+            "topic": parameters['name'],
+        },
         "error": ""
     }
     try:
-        subscribers = topics[response['topic']]['subscribers']
+        subscribers = topics[response['data']['topic']]['subscribers']
         in_list = False
         for sub in subscribers:
             if sub['uuid'] == id:
                 in_list = True
-                topics[response['topic']]['subscribers'].remove(sub)    
+                topics[response['data']['topic']]['subscribers'].remove(sub)    
 
                 # remove topic if all users are unsubscribed
-                if len(topics[response['topic']]['subscribers']) == 0:
-                    topics.pop(response['topic'], None)
+                if len(topics[response['data']['topic']]['subscribers']) == 0:
+                    topics.pop(response['data']['topic'], None)
 
                 response['status'] = "success"
                 break
@@ -130,13 +134,15 @@ def handle_publish(parameters, id, conn):
     response = {
         "status": "failure",
         "function": "PUBLISH_TOPIC",
-        "topic": parameters['name'],
-        "message": parameters['message'],
+        "data": {
+            "topic": parameters['name'],
+            "message": parameters['message'],
+        },
         "error": ""
     }
 
     try:
-        subscribers = topics[response['topic']]['subscribers']
+        subscribers = topics[response['data']['topic']]['subscribers']
         in_list = False
         for sub in subscribers:
             if sub['uuid'] == id:
@@ -148,8 +154,8 @@ def handle_publish(parameters, id, conn):
         else:
             response['status'] = "success"
             timestamp = datetime.now().strftime("%Y-%m-%d %X")
-            topics[response['topic']]['last_update'] = timestamp
-            start_sender(response['message'], response['topic'], timestamp)
+            topics[response['data']['topic']]['last_update'] = timestamp
+            start_sender(response['data']['message'], response['data']['topic'], timestamp)
     except KeyError:
         # key(topic) does not exist in topics
         response['error'] = "topic does not exist"
@@ -158,12 +164,14 @@ def handle_publish(parameters, id, conn):
 
 async def send_update(message, topic, time):
     payload = {
+        "status": "success",
         "function": "UPDATE_TOPIC",
-        "parameters": {
+        "data": {
             "name": topic,
             "message": message,
             "timestamp": time
-        }
+        },
+        "error": ""
     }
     for sub in topics[topic]['subscribers']:
         await sub['conn'].send_text(json.dumps(payload))
@@ -187,15 +195,17 @@ def handle_topic_status(parameters, id, conn):
     response = {
         "status": "failure",
         "function": "GET_TOPIC_STATUS",
-        "topic": parameters['name'],
-        "topic_status": "",
-        "last_update": "",
-        "subscribers": "",
+        "data": {
+            "topic": parameters['name'],
+            "topic_status": "",
+            "last_update": "",
+            "subscribers": "",
+        },
         "error": ""
     }
 
     try:
-        subscribers = topics[response['topic']]['subscribers']
+        subscribers = topics[response['data']['topic']]['subscribers']
         in_list = False
         for sub in subscribers:
             if sub['uuid'] == id:
@@ -204,13 +214,14 @@ def handle_topic_status(parameters, id, conn):
                 break
 
         response['status'] = "success"
-        if in_list:
-            response['topic_status'] = "subscribed"
-        else:
-            response['topic_status'] = "not subscribed"
 
-        response['subscribers'] = len(subscribers)
-        response['last_update'] = topics[response['topic']]['last_update']
+        if in_list:
+            response['data']['topic_status'] = "subscribed"
+        else:
+            response['data']['topic_status'] = "not subscribed"
+
+        response['data']['subscribers'] = len(subscribers)
+        response['data']['last_update'] = topics[response['data']['topic']]['last_update']
     except:
         # key(topic) does not exist in topics
         response['error'] = "topic does not exist"
@@ -224,7 +235,10 @@ def handle_topic_list(parameters, id, conn):
     response = {
         "status": "failure",
         "function": "LIST_TOPIC",
-        "topic_list": [key for key in topics.keys()]
+        "data": {
+            "topic_list": [key for key in topics.keys()],
+        },
+        "error": ""
     }
     response['status'] = "success"
 
