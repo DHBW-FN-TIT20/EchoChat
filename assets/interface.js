@@ -1,55 +1,70 @@
-const outputDiv = document.getElementById('output');
-const inputField = document.getElementById('input');
-const sendButton = document.getElementById('sendBtn');
-const sendSubscribe = document.getElementById('sendSub');
-let websocket;
+/*
+ * EchoChat interface implementation
+ *  handles server interaction 
+ */
 
-// Connect to the WebSocket server
-function connectWebSocket() {
-    websocket = new WebSocket('ws://127.0.0.1:8000/ws');
+class echoInterface {
+    constructor(client, uri = 'ws://127.0.0.1:8000/ws'){
+        this.websocket = this.connectWebSocket(uri)
+        this.client = client
+    }
 
-    websocket.onopen = () => {
-        outputDiv.innerHTML += '<p>WebSocket connection established.</p>';
-    };
+    connectWebSocket(uri) {
+        let websocket = new WebSocket(uri);
 
-    websocket.onmessage = (event) => {
-        outputDiv.innerHTML += '<p>Received: ' + event.data + '</p>';
-    };
+        websocket.onopen = () => {
+            console.log("websocket connected")
+        }
+        websocket.onmessage = (event) => {
+            this.handleMessage(event.data);
+        }
+        websocket.onclose = () => {
+            // attempt reconnect
+        }
+        websocket.onerror = (error) => {
+            this.errorHandler(error);
+        }
 
-    websocket.onclose = () => {
-        outputDiv.innerHTML += '<p>WebSocket connection closed.</p>';
-    };
+        return websocket
+    }
 
-    websocket.onerror = (error) => {
-        outputDiv.innerHTML += '<p>Error: ' + error + '</p>';
-    };
-}
-
-function subscribe(topic) {
-    const payload = {
-        function: "SUBSCRIBE_TOPIC",
-        parameters: {
-            name: topic
+    handleMessage(raw) {
+        let message = JSON.parse(raw);
+        switch(message.status) {
+            case 'success':
+                this.client.successHandler(this.client, message);
+                break;
+            default:
+                this.client.errorHandler(this.client, message);
+                break;
         }
     }
-    websocket.send(JSON.stringify(payload));
-    outputDiv.innerHTML += "<p>Sent: " + JSON.stringify(payload) + "</p>";
+
+    sendRequest(request, data) {
+        const payload = {
+            function: request,
+            parameters: data,
+        }
+        this.websocket.send(JSON.stringify(payload));
+    }
+
+    subscribe(topic) {
+        this.sendRequest('SUBSCRIBE_TOPIC', {name: topic});
+    }
+    unsubscribe(topic) {
+        this.sendRequest('UNSUBSCRIBE_TOPIC', {name: topic});
+    }
+    publish(topic, message) {
+        this.sendRequest('PUBLISH_TOPIC', {name: topic, message: message});
+    }
+    listTopics() {
+        this.sendRequest('LIST_TOPICS', {})
+    }
+    topicStatus(topic) {
+        this.sendRequest('GET_TOPIC_STATUS', {name: topic})
+    }
+
 }
 
-// Send a message through the WebSocket
-function sendMessage() {
-    const message = inputField.value;
-    websocket.send(message);
-    outputDiv.innerHTML += '<p>Sent: ' + message + '</p>';
-    inputField.value = '';
-}
-
-// Connect WebSocket button click event
-connectWebSocket();
-
-// Send message button click event
-sendButton.addEventListener('click', sendMessage);
-sendSubscribe.addEventListener("click", e => {
-    subscribe(inputField.value);
-});
+export { echoInterface }
 

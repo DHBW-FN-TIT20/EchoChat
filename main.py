@@ -234,7 +234,7 @@ def handle_topic_list(parameters, id, conn):
     """
     response = {
         "status": "failure",
-        "function": "LIST_TOPIC",
+        "function": "LIST_TOPICS",
         "data": {
             "topic_list": [key for key in topics.keys()],
         },
