@@ -43,7 +43,15 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         # Remove the connection from the list when the client disconnects
-        pass
+        for topic in topics.keys():
+            subscribers = topics[topic]['subscribers']
+            for sub in subscribers:
+                if sub['uuid'] == id:
+                    topics[topic]['subscribers'].remove(sub)    
+
+                    # remove topic if all users are unsubscribed
+                    if len(topics[topic]['subscribers']) == 0:
+                        topics.pop(topic, None)
 
 """ 
 contains the topics and their relevant subscribers

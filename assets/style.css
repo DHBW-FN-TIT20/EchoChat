@@ -5,6 +5,8 @@
     --bs-font-sans-serif: var(--font-outfit-sans-serif);
 }
 
+.mw-90 {max-width: 90%}
+
 /* alias because habit */
 .hidden {display: none !important;}
 

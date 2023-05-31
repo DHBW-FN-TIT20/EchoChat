@@ -49,7 +49,7 @@ def handle_publish(conn):
     send_ws_request("PUBLISH_TOPIC", params, conn)
 
 def handle_list(conn):
-    send_ws_request("LIST_TOPIC", {}, conn)
+    send_ws_request("LIST_TOPICS", {}, conn)
 
 def handle_status(conn):
     name = input("choose topic to check:\n>> ")
