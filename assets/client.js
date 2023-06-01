@@ -26,17 +26,18 @@ class client {
         document.getElementById('send').addEventListener('click', this.initSend);
         document.getElementById('input').addEventListener('keydown', e => {
             if (e.key === "Enter") {
-                this.initSend()
+                let self = this;
+                this.initSend(self);
             }
         });
     }
-    initSend() {
+    initSend(self) {
         let message = document.getElementById('input').value;
         if (message.trim() !== "") {
             const topic = document.getElementById('currentTopic').innerText;
             document.getElementById('input').value = ""
-            this.publish(topic, message.trim());
-            this.sentMessage = message.trim();
+            self.publish(topic, message.trim());
+            self.sentMessage = message.trim();
         } else {
             document.getElementById('input').value = "";
         }
