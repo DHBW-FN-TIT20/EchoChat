@@ -29,14 +29,14 @@ async def websocket_endpoint(websocket: WebSocket):
 
     id = uuid.uuid4()
 
+    print()
+
     try:
         # Keep the connection open and handle incoming messages
         while True:
             # Wait for incoming message from the client
             input = await websocket.receive_text()
             response = handle_input(input, id, websocket)
-
-            pprint.pprint(topics)
 
             # Send the received message to all connected clients
             await websocket.send_text(json.dumps(response))
@@ -260,13 +260,25 @@ def handle_input(input, id, conn):
         'GET_TOPIC_STATUS': handle_topic_status, 
         'LIST_TOPICS': handle_topic_list,
     }
+    response = {
+        "status": "failure",
+        "data": "",
+        "error": "unknown server error"
+    }
     try:
-        parsed = json.loads(input)
-        return functions[parsed['function']](parsed['parameters'], id, conn)
-    except (json.JSONDecodeError, KeyError):
-        response = {
-            "status": "failure",
-            "error": "could not interpret request"
-        }
-        return response
+        try:
+            parsed = json.loads(input)
+            return functions[parsed['function']](parsed['parameters'], id, conn)
+        except (json.JSONDecodeError, KeyError):
+            response = {
+                "status": "failure",
+                "data": "",
+                "error": "could not interpret request"
+            }
+            return response
+    except Exception as e:
+        response['data'] = str(e)
+
+    # something went horribly wrong, return error
+    return response
 

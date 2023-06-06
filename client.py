@@ -34,28 +34,28 @@ def send_ws_request(function, parameters, conn):
     payload = json.dumps(request)
     conn.send(payload)
 
-def handle_subscribe(conn):
-    name = input("subscribe to topic:\n>> ")
-    send_ws_request("SUBSCRIBE_TOPIC", {"name": name}, conn)
+def handle_subscribe(conn, name = ""):
+    topic = input("subscribe to topic:\n>> ") if name == "" else name
+    send_ws_request("SUBSCRIBE_TOPIC", {"name": topic}, conn)
 
-def handle_unsubscribe(conn):
-    name = input("unsubscribe from topic:\n>> ")
-    send_ws_request("UNSUBSCRIBE_TOPIC", {"name": name}, conn)
+def handle_unsubscribe(conn, name = ""):
+    topic = input("unsubscribe from topic:\n>> ") if name == "" else name
+    send_ws_request("UNSUBSCRIBE_TOPIC", {"name": topic}, conn)
 
-def handle_publish(conn):
-    name = input("choose topic to publish to:\n>> ")
-    message = input("message to publish:\n>>> ")
-    params = {"name": name, "message": message}
+def handle_publish(conn, name = "", message = ""):
+    topic = input("choose topic to publish to:\n>> ") if name == "" else name
+    text = input("message to publish:\n>>> ") if message == "" else message
+    params = {"name": topic, "message": text}
     send_ws_request("PUBLISH_TOPIC", params, conn)
 
 def handle_list(conn):
     send_ws_request("LIST_TOPICS", {}, conn)
 
-def handle_status(conn):
-    name = input("choose topic to check:\n>> ")
-    send_ws_request("GET_TOPIC_STATUS", {"name": name}, conn)
+def handle_status(conn, name = ""):
+    topic = input("choose topic to check:\n>> ") if name == "" else name
+    send_ws_request("GET_TOPIC_STATUS", {"name": topic}, conn)
 
-def end_loop(conn):
+def end_loop(_):
     print("exiting")
     raise KeyboardInterrupt
 
