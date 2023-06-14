@@ -9,49 +9,10 @@ import uuid
 import json
 
 from datetime import datetime
-import pprint
 
 app = FastAPI()
-app.mount("/assets", StaticFiles(directory="assets"), name="assets")
+app.mount("/assets", StaticFiles(directory="./app/web/assets"), name="assets")
 
-@app.get("/")
-async def getRoot():
-    return FileResponse('index.html')
-
-@app.get("/int")
-async def getInterface():
-    return FileResponse('interface.html')
-
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    # Accept the WebSocket connection
-    await websocket.accept()
-
-    id = uuid.uuid4()
-
-    print()
-
-    try:
-        # Keep the connection open and handle incoming messages
-        while True:
-            # Wait for incoming message from the client
-            input = await websocket.receive_text()
-            response = handle_input(input, id, websocket)
-
-            # Send the received message to all connected clients
-            await websocket.send_text(json.dumps(response))
-
-    except WebSocketDisconnect:
-        # Remove the connection from the list when the client disconnects
-        for topic in topics.keys():
-            subscribers = topics[topic]['subscribers']
-            for sub in subscribers:
-                if sub['uuid'] == id:
-                    topics[topic]['subscribers'].remove(sub)    
-
-                    # remove topic if all users are unsubscribed
-                    if len(topics[topic]['subscribers']) == 0:
-                        topics.pop(topic, None)
 
 """ 
 contains the topics and their relevant subscribers
@@ -68,6 +29,60 @@ contains the topics and their relevant subscribers
                  '- [uuid, conn]
 """
 topics = {}
+""" additionally there is a lock for accessing the dictionary """
+topics_lock = threading.Lock()
+
+
+@app.get("/")
+async def getRoot():
+    return FileResponse('./app/web/index.html')
+
+@app.get("/int")
+async def getInterface():
+    return FileResponse('./app/web/interface.html')
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    # Accept the WebSocket connection
+    await websocket.accept()
+
+    id = uuid.uuid4()
+
+    try:
+        try:
+            # Keep the connection open and handle incoming messages
+            while True:
+                # Wait for incoming message from the client
+                input = await websocket.receive_text()
+
+                topics_lock.acquire()
+
+                response = handle_input(input, id, websocket)
+
+                topics_lock.release()
+
+                # Send the received message to all connected clients
+                await websocket.send_text(json.dumps(response))
+        except WebSocketDisconnect:
+            # Remove the connection from the list when the client disconnects
+
+            topics_lock.acquire()
+
+            for topic in topics.keys():
+                subscribers = topics[topic]['subscribers']
+                for sub in subscribers:
+                    if sub['uuid'] == id:
+                        topics[topic]['subscribers'].remove(sub)    
+
+                        # remove topic if all users are unsubscribed
+                        if len(topics[topic]['subscribers']) == 0:
+                            topics.pop(topic, None)
+
+            topics_lock.release()
+    except RuntimeError as e:
+        print(e)
+        pass
+
 
 def handle_subscribe(parameters, id, conn):
     """
