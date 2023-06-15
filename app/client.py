@@ -143,7 +143,7 @@ def format_subscribe(resp):
 
     if resp['status'] == "success":
         data = resp['data']
-        lead = f"Subscribe @ {data['topic']}"
+        lead = f"Subscribe @ {data['topic']} | Successful"
         sub =  f" -> Successfully subscribed to {data['topic']}"
         formatted = f"{lead}\n{sub}"
     else:
@@ -162,7 +162,7 @@ def format_unsubscribe(resp):
 
     if resp['status'] == "success":
         data = resp['data']
-        lead = f"Unsubscribe @ {data['topic']}"
+        lead = f"Unsubscribe @ {data['topic']} | Successful"
         sub =  f" -> Successfully unsubscribed from {data['topic']}"
         formatted = f"{lead}\n{sub}"
     else:
@@ -205,7 +205,7 @@ def format_status(resp):
         data = resp['data']
 
         lead =  f"Status @ {data['topic']} | {data['topic_status']}"
-        info1 = f" -> Last Updated {data['last_update']}"
+        info1 = f" -> Last Updated: {data['last_update']}"
         info2 = f" -> Subscriber Count: {data['subscribers']}"
         
         formatted = f"{lead}\n{info1}\n{info2}"
@@ -257,7 +257,7 @@ def format_update(resp):
     return formatted
 
 
-def pretty_print_message(message):
+def format_message(message):
     """
     formats the server response to be more human readable
     message(str): json response from the server
@@ -277,7 +277,7 @@ def pretty_print_message(message):
 
     try:
         content = functions[parsed['function']](parsed)
-        out = f"\n{sep}\n{content}\n{sep}\n> "
+        out = f"{sep}\n{content}\n{sep}"
     except KeyError:
         # invalid function received
         pass
@@ -296,7 +296,7 @@ async def listener(conn):
         while True:
             result = conn.recv()
             #print(f"\n{result}\n> ", end="")
-            print(pretty_print_message(result), end="")
+            print(f"\n{format_message(result)}\n> ", end="")
     except ConnectionClosedOK:
         #print("\nwebsocket closed")
         pass
@@ -379,13 +379,19 @@ def main():
                 while True:
                     # wait for new messages
                     result = conn.recv()
-                    print(result)
+                    if args.output == "human":
+                        print(format_message(result))
+                    else:
+                        print(result)
             except KeyboardInterrupt:
                 conn.close()
         else:
             # wait for server response
             result = conn.recv()
-            print(result)
+            if args.output == "human":
+                print(format_message(result))
+            else:
+                print(result)
 
             # exit
             conn.close()
