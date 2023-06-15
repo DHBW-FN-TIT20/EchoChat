@@ -68,15 +68,27 @@ async def websocket_endpoint(websocket: WebSocket):
 
             topics_lock.acquire()
 
+            dead_topics = []
+
+            # go through each topic
             for topic in topics.keys():
                 subscribers = topics[topic]['subscribers']
                 for sub in subscribers:
                     if sub['uuid'] == id:
+                        # we found the client, remove it
                         topics[topic]['subscribers'].remove(sub)    
+                        # and stop iterating
+                        break
 
-                        # remove topic if all users are unsubscribed
-                        if len(topics[topic]['subscribers']) == 0:
-                            topics.pop(topic, None)
+                # check if the topic has no more subscribers
+                if len(topics[topic]['subscribers']) == 0:
+                    # mark the topic for removal
+                    dead_topics.append(topic)
+
+            # iterate through dead topics
+            for topic in dead_topics:
+                # remove the topic
+                topics.pop(topic, None)
 
             topics_lock.release()
     except RuntimeError as e:
@@ -239,9 +251,9 @@ def handle_topic_status(parameters, id, conn):
         response['status'] = "success"
 
         if in_list:
-            response['data']['topic_status'] = "subscribed"
+            response['data']['topic_status'] = "Subscribed"
         else:
-            response['data']['topic_status'] = "not subscribed"
+            response['data']['topic_status'] = "Not Subscribed"
 
         response['data']['subscribers'] = len(subscribers)
         response['data']['last_update'] = topics[response['data']['topic']]['last_update']
